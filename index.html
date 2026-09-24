@@ -69,6 +69,11 @@ li.copied .c{color:var(--ok)}
 .torch{position:absolute;right:10px;bottom:10px;width:48px;height:48px;min-height:0;padding:0;border-radius:50%;border:0;background:rgba(0,0,0,.6);font-size:20px}
 .torch[aria-pressed="true"]{background:var(--accent)}
 .result{border:2px solid var(--ok)}
+.result.warn{border-color:#F0B35A}
+.shutter{min-height:68px;font-size:19px}
+.flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
+.flash.go{animation:flash .35s ease-out}
+@keyframes flash{from{opacity:.8}to{opacity:0}}
 .result input{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:10px;color:var(--ink);font:700 24px var(--mono);padding:12px;letter-spacing:.05em;text-transform:uppercase}
 .btnrow{display:flex;gap:10px}
 .btnrow button{flex:1}
@@ -138,19 +143,20 @@ li.copied .c{color:var(--ok)}
       <div class="guide" id="guide"></div>
       <div class="hint">Ajusta el código raspado de borde a borde del recuadro</div>
       <div class="live" id="live"></div>
+      <div class="flash" id="flash"></div>
       <div class="camstate" id="camState"><p>Toca <b>Abrir cámara</b></p></div>
       <button type="button" class="torch" id="torch" aria-pressed="false" aria-label="Linterna" hidden>🔦</button>
     </div>
 
     <button type="button" class="primary" id="startBtn">Abrir cámara</button>
+    <button type="button" class="primary shutter" id="shotBtn" hidden>📸 Tomar foto y enviar</button>
     <div class="status" id="phStatus" role="status" aria-live="polite"></div>
 
     <div class="card result" id="result" hidden>
-      <span class="lbl">Código leído · revísalo con el libro</span>
+      <span class="lbl" id="resultLbl">Código leído</span>
       <input id="resultInput" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Código leído">
       <div class="btnrow">
-        <button type="button" class="primary" id="sendBtn">Enviar a la computadora</button>
-        <button type="button" id="retryBtn">Leer otra vez</button>
+        <button type="button" id="sendBtn">Enviar corregido</button>
       </div>
     </div>
 
@@ -370,62 +376,79 @@ li.copied .c{color:var(--ok)}
         if (caps.torch) $('torch').hidden = false; } catch {}
       $('camState').hidden = true; $('startBtn').hidden = true;
       try { await engine(); } catch { status('No se pudo cargar el lector. Revisa tu conexión y recarga.', 'bad'); return; }
-      status('Leyendo… mantén el celular quieto.');
-      scan();
+      $('shotBtn').hidden = false;
+      status('Ajusta el código al recuadro y toca «Tomar foto».');
     };
     $('torch').onclick = async () => { const on = $('torch').getAttribute('aria-pressed') !== 'true';
       try { await track.applyConstraints({advanced: [{torch: on}]}); $('torch').setAttribute('aria-pressed', on); } catch {} };
 
-    // continuous reading with voting: accept a value once it wins 2+ of the recent reads
-    async function scan(){
-      if (running) return; running = true; votes = [];
-      const w = await engine();
-      while (running && $('result').hidden){
-        const reads = [];
-        for (const [h, t] of [[110, .2], [150, .15]]){
-          const crop = cropGuide(h); if (!crop) break;
-          const {data} = await w.recognize(adaptive(crop, t));
-          const v = fit(cleanLine(data.text || ''));
-          if (v.length >= 8) reads.push(v);
-        }
-        votes.push(...reads); votes = votes.slice(-8);
-        const tally = {}; votes.forEach(v => tally[v] = (tally[v] || 0) + 1);
-        const top = Object.entries(tally).sort((a, b) => b[1] - a[1])[0];
-        $('live').textContent = top ? top[0] : '';
-        guide.classList.toggle('hit', !!top && top[1] >= 2);
-        if (top && top[1] >= 3){ found(top[0]); break; }
-        await new Promise(r => setTimeout(r, 60));
-      }
-      running = false;
-    }
-    function found(code){
-      try { navigator.vibrate?.(80); } catch {}
-      $('resultInput').value = code; $('result').hidden = false; $('live').textContent = '';
-      guide.classList.remove('hit');
-      status(room ? 'Revisa el código y toca «Enviar».' : 'Revisa el código y toca «Guardar».');
-      $('result').scrollIntoView({block: 'nearest', behavior: 'smooth'});
-    }
-    $('retryBtn').onclick = () => { $('result').hidden = true; status('Leyendo… mantén el celular quieto.'); scan(); };
+    const fitsShape = v => templates.some(k => k.length === v.length && shapeOf(k) === shapeOf(v));
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
 
+    // shutter: grab a quick burst of frames, read them all, vote, send the winner
+    async function shoot(){
+      if (running || !stream) return; running = true;
+      $('shotBtn').disabled = true; $('result').hidden = true;
+      const fl = $('flash'); fl.classList.remove('go'); void fl.offsetWidth; fl.classList.add('go');
+      try { navigator.vibrate?.(40); } catch {}
+      // 1) capture frames first (user can relax right after)
+      const frames = [];
+      for (let i = 0; i < 5; i++){
+        for (const [h, t] of [[110, .2], [150, .15]]){ const c = cropGuide(h); if (c) frames.push({c, t}); }
+        await sleep(110);
+      }
+      status('Leyendo el código…');
+      // 2) OCR + vote
+      const w = await engine(), tally = {};
+      let done = 0;
+      for (const f of frames){
+        const {data} = await w.recognize(adaptive(f.c, f.t));
+        const v = fit(cleanLine(data.text || ''));
+        if (v.length >= 8) tally[v] = (tally[v] || 0) + 1;
+        done++; $('live').textContent = `Leyendo ${done}/${frames.length}`;
+        const lead = Object.entries(tally).sort((a, b) => b[1] - a[1])[0];
+        if (lead && lead[1] >= 4 && fitsShape(lead[0])) break;       // clear winner → stop early
+      }
+      $('live').textContent = '';
+      const ranked = Object.entries(tally).map(([v, n]) => [v, n + (fitsShape(v) ? 1.5 : 0), n]).sort((a, b) => b[1] - a[1]);
+      running = false; $('shotBtn').disabled = false;
+      if (!ranked.length){ status('No se distinguió el código. Acércate, evita el reflejo y toma otra foto.', 'bad'); try { navigator.vibrate?.([60, 60, 60]); } catch {} return; }
+      const [best, , votes] = ranked[0];
+      const sure = (fitsShape(best) && votes >= 2) || votes >= 3;
+      if (sure) { await send(best, false); }
+      else {
+        showResult(best, 'No estoy seguro · revísalo con el libro', true);
+        $('sendBtn').textContent = room ? 'Enviar' : 'Guardar';
+        status('Corrige si hace falta y toca «Enviar», o toma otra foto.', 'bad');
+      }
+    }
+    $('shotBtn').onclick = shoot;
+    cam.addEventListener('click', e => { if (e.target.id !== 'torch' && stream) shoot(); });
+
+    function showResult(code, label, warn){
+      $('resultInput').value = code; $('resultLbl').textContent = label;
+      $('result').classList.toggle('warn', !!warn); $('result').hidden = false;
+    }
     function renderSent(){
       $('sentList').replaceChildren(...(sent.length ? sent.map(s => { const d = document.createElement('div');
         const a = document.createElement('span'); a.textContent = s.code; const b = document.createElement('span'); b.textContent = (s.ok ? '✓ ' : '') + hm(s.ts); d.append(a, b); return d; })
         : [Object.assign(document.createElement('span'), {className: 'muted', textContent: 'Nada todavía.'})]));
     }
-    $('sendBtn').onclick = async () => {
-      const code = $('resultInput').value.toUpperCase().replace(/\s+/g, '').trim(); if (!code) return;
-      $('sendBtn').disabled = true;
+    async function send(code, corrected){
       let ok = false;
-      if (room){
-        try { const r = await fetch(RELAY + room, {method: 'POST', body: JSON.stringify({code, ts: Date.now()})}); ok = r.ok; } catch {}
-      }
-      $('sendBtn').disabled = false;
-      if (room && !ok){ status('No se pudo enviar. Revisa la conexión a internet y toca «Enviar» otra vez.', 'bad'); return; }
-      learn(code);
+      if (room){ try { const r = await fetch(RELAY + room, {method: 'POST', body: JSON.stringify({code, ts: Date.now()})}); ok = r.ok; } catch {} }
+      if (room && !ok){ showResult(code, 'No se pudo enviar', true); $('sendBtn').textContent = 'Reintentar envío'; status('Sin conexión. Toca «Reintentar envío».', 'bad'); return; }
+      if (corrected) learn(code);
       sent.unshift({code, ts: Date.now(), ok}); ls.set('phSent', sent.slice(0, 200)); renderSent();
-      status(room ? `Enviado: ${code}` : `Guardado: ${code}`, 'ok');
-      $('result').hidden = true;
-      setTimeout(() => { if ($('result').hidden) { status('Listo para el siguiente. Leyendo…'); scan(); } }, 1200);
+      try { navigator.vibrate?.(120); } catch {}
+      showResult(code, room ? 'Enviado ✓ · si algo no coincide, corrígelo y reenvía' : 'Guardado ✓', false);
+      $('sendBtn').textContent = room ? 'Enviar corregido' : 'Guardar corregido';
+      status(room ? `Enviado: ${code}. Listo para el siguiente.` : `Guardado: ${code}`, 'ok');
+    }
+    $('sendBtn').onclick = async () => {
+      const code = $('resultInput').value.toUpperCase().replace(/[^A-Z0-9-]/g, '');
+      if (!code) return;
+      $('sendBtn').disabled = true; await send(code, true); $('sendBtn').disabled = false;
     };
     $('sentList').onclick = async e => { const d = e.target.closest('div'); if (!d) return; try { await navigator.clipboard.writeText(d.firstChild.textContent); status('Copiado', 'ok'); } catch {} };
     renderSent();
