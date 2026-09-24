@@ -154,6 +154,7 @@ li.copied .c{color:var(--ok)}
 
     <div class="card result" id="result" hidden>
       <span class="lbl" id="resultLbl">Código leído</span>
+      <img id="shotPreview" alt="Lo que leyó el lector" hidden style="width:100%;border-radius:8px;background:#fff">
       <input id="resultInput" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Código leído">
       <div class="btnrow">
         <button type="button" id="sendBtn">Enviar corregido</button>
@@ -292,17 +293,17 @@ li.copied .c{color:var(--ok)}
         const L = k.length, sh = shapeOf(k);
         for (const off of [0, 1, 2]){
           const cand = t.slice(off, off + L); if (cand.length !== L) continue;
-          let out = '', cost = off + Math.max(0, t.length - off - L);
+          let out = '', cost = off + Math.max(0, t.length - off - L), mapped = [];
           for (let i = 0; i < L; i++){
             const c = cand[i];
-            if (sh[i] === 'A' && /[0-9]/.test(c)){ out += (ALTS[c] || '').includes(k[i]) ? k[i] : (TO_L[c] || c); cost++; }
-            else if (sh[i] === '9' && /[A-Z]/.test(c)){ out += TO_D[c] || c; cost++; }
+            if (sh[i] === 'A' && /[0-9]/.test(c)){ out += (ALTS[c] || '').includes(k[i]) ? k[i] : (TO_L[c] || c); cost++; mapped.push(i); }
+            else if (sh[i] === '9' && /[A-Z]/.test(c)){ out += TO_D[c] || c; cost++; mapped.push(i); }
             else out += c;
           }
-          if (!best || cost < best.cost) best = {out, cost};
+          if (!best || cost < best.cost) best = {out, cost, mapped};
         }
       }
-      return best && best.cost <= Math.ceil(best.out.length / 3) ? best.out : t;
+      return best && best.cost <= Math.ceil(best.out.length / 3) ? best : {out: t, cost: 99, mapped: []};
     }
     function learn(code){
       if (!/^[A-Z0-9]{6,40}$/.test(code)) return;
@@ -325,6 +326,17 @@ li.copied .c{color:var(--ok)}
       ctx.drawImage(video, sx, sy, sw, sh, pad, pad, c.width - pad * 2, targetH);
       return {c, pad};
     }
+    function sharpness({c, pad}){
+      const W = c.width, H = c.height, d = c.getContext('2d').getImageData(0, 0, W, H).data;
+      const g = i => d[i * 4] * .299 + d[i * 4 + 1] * .587 + d[i * 4 + 2] * .114;
+      let n = 0, sum = 0, sq = 0;
+      for (let y = pad + 1; y < H - pad - 1; y += 2) for (let x = pad + 1; x < W - pad - 1; x += 2){
+        const i = y * W + x, v = 4 * g(i) - g(i - 1) - g(i + 1) - g(i - W) - g(i + W);
+        sum += v; sq += v * v; n++;
+      }
+      return n ? sq / n - (sum / n) ** 2 : 0;
+    }
+    function copyCanvas({c, pad}){ const k = document.createElement('canvas'); k.width = c.width; k.height = c.height; k.getContext('2d').drawImage(c, 0, 0); return {c: k, pad}; }
     function adaptive({c, pad}, t = 0.2){
       const ctx = c.getContext('2d'), W = c.width, H = c.height;
       const img = ctx.getImageData(0, 0, W, H), d = img.data, g = new Float32Array(W * H);
@@ -391,33 +403,53 @@ li.copied .c{color:var(--ok)}
       $('shotBtn').disabled = true; $('result').hidden = true;
       const fl = $('flash'); fl.classList.remove('go'); void fl.offsetWidth; fl.classList.add('go');
       try { navigator.vibrate?.(40); } catch {}
-      // 1) capture frames first (user can relax right after)
-      const frames = [];
-      for (let i = 0; i < 5; i++){
-        for (const [h, t] of [[110, .2], [150, .15]]){ const c = cropGuide(h); if (c) frames.push({c, t}); }
-        await sleep(110);
+      // 1) burst: 7 frames, keep the 4 sharpest (drops motion blur / out of focus)
+      let frames = [];
+      for (let i = 0; i < 7; i++){
+        const big = cropGuide(150), small = cropGuide(110), tiny = cropGuide(90);
+        if (big) frames.push({big, small, tiny, sharp: sharpness(big)});
+        await sleep(100);
       }
+      frames.sort((x, y) => y.sharp - x.sharp); frames = frames.slice(0, 4);
       status('Leyendo el código…');
-      // 2) OCR + vote
-      const w = await engine(), tally = {};
-      let done = 0;
+      // 2) OCR each kept frame in 3 processings
+      const w = await engine(), reads = [], raws = [];
+      let done = 0, total = frames.length * 3, preview = null;
       for (const f of frames){
-        const {data} = await w.recognize(adaptive(f.c, f.t));
-        const v = fit(cleanLine(data.text || ''));
-        if (v.length >= 8) tally[v] = (tally[v] || 0) + 1;
-        done++; $('live').textContent = `Leyendo ${done}/${frames.length}`;
-        const lead = Object.entries(tally).sort((a, b) => b[1] - a[1])[0];
-        if (lead && lead[1] >= 4 && fitsShape(lead[0])) break;       // clear winner → stop early
+        for (const [crop, t] of [[f.big, .15], [f.small, .2], [f.tiny, .25]]){
+          const bin = adaptive(copyCanvas(crop), t);
+          if (!preview) preview = bin.toDataURL();
+          const {data} = await w.recognize(bin);
+          const raw = cleanLine(data.text || '');
+          if (raw.length >= 8){ raws.push(raw); reads.push(fit(raw)); }
+          $('live').textContent = `Leyendo ${++done}/${total}`;
+        }
       }
       $('live').textContent = '';
-      const ranked = Object.entries(tally).map(([v, n]) => [v, n + (fitsShape(v) ? 1.5 : 0), n]).sort((a, b) => b[1] - a[1]);
       running = false; $('shotBtn').disabled = false;
-      if (!ranked.length){ status('No se distinguió el código. Acércate, evita el reflejo y toma otra foto.', 'bad'); try { navigator.vibrate?.([60, 60, 60]); } catch {} return; }
-      const [best, , votes] = ranked[0];
-      const sure = (fitsShape(best) && votes >= 2) || votes >= 3;
-      if (sure) { await send(best, false); }
+      $('shotPreview').src = preview || ''; $('shotPreview').hidden = !preview;
+      if (!reads.length){ status('No se distinguió el código. Acércate, evita el reflejo y toma otra foto.', 'bad'); try { navigator.vibrate?.([60, 60, 60]); } catch {} return; }
+
+      // 3) character-level vote among reads that match the code's shape
+      const good = reads.filter(r => r.cost < 99 && fitsShape(r.out));
+      let code, sure;
+      if (good.length >= 3){
+        const L = good[0].out.length; code = ''; let weakest = 1;
+        for (let i = 0; i < L; i++){
+          const c = {}; let tot = 0;
+          good.forEach(r => { const wgt = r.mapped.includes(i) ? 1 : 2; c[r.out[i]] = (c[r.out[i]] || 0) + wgt; tot += wgt; });
+          const [ch, n] = Object.entries(c).sort((x, y) => y[1] - x[1])[0];
+          code += ch; weakest = Math.min(weakest, n / tot);
+        }
+        sure = weakest >= 0.55;
+      } else {
+        const tally = {}; reads.forEach(r => tally[r.out] = (tally[r.out] || 0) + 1);
+        const [v, n] = Object.entries(tally).sort((x, y) => y[1] - x[1])[0];
+        code = v; sure = n >= 4;
+      }
+      if (sure) await send(code, false);
       else {
-        showResult(best, 'No estoy seguro · revísalo con el libro', true);
+        showResult(code, 'No estoy seguro · revísalo con el libro', true);
         $('sendBtn').textContent = room ? 'Enviar' : 'Guardar';
         status('Corrige si hace falta y toca «Enviar», o toma otra foto.', 'bad');
       }
