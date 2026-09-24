@@ -66,6 +66,8 @@ li.copied .c{color:var(--ok)}
 .hint{position:absolute;left:0;right:0;top:14px;text-align:center;font-weight:700;font-size:15px;text-shadow:0 1px 4px #000;padding:0 14px}
 .live{position:absolute;left:0;right:0;top:calc(57% + 10px);text-align:center;font:700 17px var(--mono);color:#fff;text-shadow:0 1px 4px #000;padding:0 10px}
 .camstate{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:20px;color:var(--muted)}
+.zoom{position:absolute;left:10px;bottom:10px;min-height:0;height:48px;padding:0 14px;border-radius:24px;border:0;background:rgba(0,0,0,.6);color:#fff;font:700 16px var(--sans)}
+.cam video{transform-origin:50% 50%}
 .torch{position:absolute;right:10px;bottom:10px;width:48px;height:48px;min-height:0;padding:0;border-radius:50%;border:0;background:rgba(0,0,0,.6);font-size:20px}
 .torch[aria-pressed="true"]{background:var(--accent)}
 .result{border:2px solid var(--ok)}
@@ -145,6 +147,7 @@ li.copied .c{color:var(--ok)}
       <div class="live" id="live"></div>
       <div class="flash" id="flash"></div>
       <div class="camstate" id="camState"><p>Toca <b>Abrir cámara</b></p></div>
+      <button type="button" class="zoom" id="zoomBtn" aria-label="Cambiar zoom" hidden>2×</button>
       <button type="button" class="torch" id="torch" aria-pressed="false" aria-label="Linterna" hidden>🔦</button>
     </div>
 
@@ -315,7 +318,7 @@ li.copied .c{color:var(--ok)}
     function cropGuide(targetH){
       const vw = video.videoWidth, vh = video.videoHeight; if (!vw) return null;
       const box = cam.getBoundingClientRect(), g = guide.getBoundingClientRect();
-      const s = Math.max(box.width / vw, box.height / vh);
+      const s = Math.max(box.width / vw, box.height / vh) * digitalZoom;
       const ox = (vw * s - box.width) / 2, oy = (vh * s - box.height) / 2;
       const sx = (g.left - box.left + ox) / s, sy = (g.top - box.top + oy) / s, sw = g.width / s, sh = g.height / s;
       const k = targetH / sh, pad = 20;
@@ -376,6 +379,21 @@ li.copied .c{color:var(--ok)}
 
     function status(m, k = ''){ $('phStatus').textContent = m; $('phStatus').className = 'status ' + k; }
 
+    // zoom: real optical/sensor zoom when the camera offers it, otherwise digital (scaled preview + matching crop)
+    let zoomCaps = null, digitalZoom = 1, zoomLevel = 1;
+    async function setZoom(z){
+      zoomLevel = z; ls.set('phZoom', z);
+      let hw = false;
+      if (zoomCaps && track){
+        const v = Math.min(zoomCaps.max || z, Math.max(zoomCaps.min || 1, z));
+        try { await track.applyConstraints({advanced: [{zoom: v}]}); hw = true; } catch {}
+      }
+      digitalZoom = hw ? 1 : z;
+      video.style.transform = digitalZoom > 1 ? `scale(${digitalZoom})` : '';
+      $('zoomBtn').textContent = z + '×';
+    }
+    $('zoomBtn').onclick = e => { e.stopPropagation(); setZoom(zoomLevel === 1 ? 2 : zoomLevel === 2 ? 3 : 1); };
+
     $('startBtn').onclick = async () => {
       if (!navigator.mediaDevices?.getUserMedia){ status('Este navegador no permite la cámara. Abre la página en Chrome o Safari.', 'bad'); return; }
       $('startBtn').disabled = true; status('Abriendo cámara y preparando el lector…');
@@ -385,7 +403,10 @@ li.copied .c{color:var(--ok)}
       track = stream.getVideoTracks()[0];
       try { const caps = track.getCapabilities?.() || {};
         if (caps.focusMode?.includes('continuous')) await track.applyConstraints({advanced: [{focusMode: 'continuous'}]});
-        if (caps.torch) $('torch').hidden = false; } catch {}
+        if (caps.torch) $('torch').hidden = false;
+        zoomCaps = caps.zoom || null; } catch {}
+      await setZoom(ls.get('phZoom', 2));
+      $('zoomBtn').hidden = false;
       $('camState').hidden = true; $('startBtn').hidden = true;
       try { await engine(); } catch { status('No se pudo cargar el lector. Revisa tu conexión y recarga.', 'bad'); return; }
       $('shotBtn').hidden = false;
@@ -455,7 +476,7 @@ li.copied .c{color:var(--ok)}
       }
     }
     $('shotBtn').onclick = shoot;
-    cam.addEventListener('click', e => { if (e.target.id !== 'torch' && stream) shoot(); });
+    cam.addEventListener('click', e => { if (e.target.id !== 'torch' && e.target.id !== 'zoomBtn' && stream) shoot(); });
 
     function showResult(code, label, warn){
       $('resultInput').value = code; $('resultLbl').textContent = label;
