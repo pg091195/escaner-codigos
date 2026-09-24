@@ -19,367 +19,418 @@
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 var(--sans)}
 body{padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
-.wrap{max-width:720px;margin:0 auto;padding:12px 14px 40px;display:grid;gap:14px}
-header{display:flex;align-items:center;justify-content:space-between;gap:10px}
-h1{font-size:19px;margin:0}
-.seg{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:3px}
-.seg button{flex:1;border:0;background:transparent;color:var(--muted);font:600 14px var(--sans);padding:10px 8px;border-radius:9px;cursor:pointer}
-.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
-
-.cam{position:relative;border-radius:16px;overflow:hidden;background:#000;aspect-ratio:3/4;max-height:62vh;width:100%}
-.cam video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.guide{position:absolute;left:8%;right:8%;top:38%;height:22%;border:3px solid var(--accent);border-radius:12px;box-shadow:0 0 0 100vmax rgba(0,0,0,.45);transition:all .2s}
-.cam.barcode .guide{top:25%;height:45%}
-.guide.hit{border-color:var(--ok)}
-.hint{position:absolute;left:0;right:0;top:12px;text-align:center;font-weight:600;font-size:14px;text-shadow:0 1px 3px #000;padding:0 12px}
-.camstate{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:20px;color:var(--muted)}
-.camctl{position:absolute;right:10px;bottom:10px;display:flex;gap:8px}
-.camctl button{width:46px;height:46px;border-radius:50%;border:0;background:rgba(0,0,0,.55);color:#fff;font-size:20px;cursor:pointer}
-.camctl button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
-
-.big{display:flex;gap:10px}
-button.primary,button.ghost{font:700 16px var(--sans);border-radius:12px;min-height:54px;padding:0 18px;cursor:pointer;border:1px solid var(--line)}
-button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);flex:1}
-button.ghost{background:var(--panel);color:var(--ink)}
+.wrap{max-width:760px;margin:0 auto;padding:14px 16px 40px;display:grid;gap:14px}
+header{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+h1{font-size:20px;margin:0}
+h2{font-size:16px;margin:0}
+.pill{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:6px}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--muted)}
+.dot.on{background:var(--ok)} .dot.bad{background:var(--bad)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;display:grid;gap:12px}
+.muted{color:var(--muted)}
+button{font:700 16px var(--sans);border-radius:12px;min-height:52px;padding:0 18px;cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button.small{min-height:38px;font-size:13.5px;font-weight:600;padding:0 12px}
 button:disabled{opacity:.5}
 button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+[hidden]{display:none!important}
 .status{min-height:22px;color:var(--muted);font-size:14px}
 .status.ok{color:var(--ok)}.status.bad{color:var(--bad)}
 
-.result{background:var(--panel);border:2px solid var(--ok);border-radius:14px;padding:14px;display:grid;gap:10px}
-.result label{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
-.result input{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:10px;color:var(--ink);font:700 22px var(--mono);padding:12px;letter-spacing:.04em}
-.result .row{display:flex;gap:10px}
-.result .row button{flex:1}
-.result small{color:var(--muted)}
-
-.listhead{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
-.listhead h2{font-size:16px;margin:0}
-.tools{display:flex;gap:8px;flex-wrap:wrap}
-.tools button{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:10px;font:600 13.5px var(--sans);padding:9px 12px;cursor:pointer}
-.tools .danger{color:var(--bad)}
-ul{list-style:none;margin:0;padding:0;background:var(--panel);border:1px solid var(--line);border-radius:14px}
-li{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line)}
+/* ---------- computer ---------- */
+.pcgrid{display:grid;grid-template-columns:minmax(0,1fr) 240px;gap:14px;align-items:start}
+@media (max-width:640px){.pcgrid{grid-template-columns:1fr}}
+.qr{background:#fff;border-radius:12px;padding:12px;display:grid;place-items:center}
+.qr svg,.qr img{width:100%;height:auto;display:block}
+.latest{border:2px solid var(--accent);border-radius:16px;padding:18px;display:grid;gap:12px;background:var(--panel)}
+.latest.pulse{animation:pulse 1.4s ease-out}
+@keyframes pulse{from{box-shadow:0 0 0 10px rgba(124,149,255,.35)}to{box-shadow:0 0 0 0 transparent}}
+.latest .code{font:700 clamp(24px,5vw,38px) var(--mono);letter-spacing:.04em;word-break:break-all;user-select:all}
+.latest .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.lbl{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+ul{list-style:none;margin:0;padding:0;border:1px solid var(--line);border-radius:14px;background:var(--panel)}
+li{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line)}
 li:last-child{border-bottom:0}
-li .n{color:var(--muted);font:13px var(--mono);min-width:26px}
-li .c{flex:1;min-width:0;font:700 16px var(--mono);word-break:break-all}
-li .t{color:var(--muted);font-size:12px;display:block;font-family:var(--sans);font-weight:400}
-li button{background:transparent;border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:7px 10px;font:600 13px var(--sans);cursor:pointer}
-li .x{color:var(--muted);border-color:transparent}
+li .c{flex:1;min-width:0;font:700 17px var(--mono);word-break:break-all;user-select:all}
+li .t{color:var(--muted);font-size:12.5px;white-space:nowrap;font-variant-numeric:tabular-nums}
+li.copied .c{color:var(--ok)}
 .empty{padding:22px;text-align:center;color:var(--muted)}
-.confirm{background:#3A1D1B;color:var(--bad);border-radius:10px;padding:10px 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.confirm button{border-radius:8px;padding:8px 12px;font:600 13px var(--sans);border:1px solid var(--line);background:var(--panel);color:var(--ink)}
-.confirm .yes{background:var(--bad);color:#fff;border-color:var(--bad)}
-[hidden]{display:none!important}
-.tips{color:var(--muted);font-size:13.5px}
+.linkbox{display:flex;gap:8px;align-items:center}
+.linkbox input{flex:1;min-width:0;background:var(--bg);border:1px solid var(--line);border-radius:10px;color:var(--muted);font:13px var(--mono);padding:9px}
+
+/* ---------- phone ---------- */
+.cam{position:relative;border-radius:16px;overflow:hidden;background:#000;aspect-ratio:3/4;max-height:60vh;width:100%}
+.cam video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.guide{position:absolute;left:5%;right:5%;top:42%;height:13%;border:3px solid var(--accent);border-radius:10px;box-shadow:0 0 0 100vmax rgba(0,0,0,.5);transition:border-color .2s}
+.guide.hit{border-color:var(--ok)}
+.hint{position:absolute;left:0;right:0;top:14px;text-align:center;font-weight:700;font-size:15px;text-shadow:0 1px 4px #000;padding:0 14px}
+.live{position:absolute;left:0;right:0;top:calc(57% + 10px);text-align:center;font:700 17px var(--mono);color:#fff;text-shadow:0 1px 4px #000;padding:0 10px}
+.camstate{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:20px;color:var(--muted)}
+.torch{position:absolute;right:10px;bottom:10px;width:48px;height:48px;min-height:0;padding:0;border-radius:50%;border:0;background:rgba(0,0,0,.6);font-size:20px}
+.torch[aria-pressed="true"]{background:var(--accent)}
+.result{border:2px solid var(--ok)}
+.result input{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:10px;color:var(--ink);font:700 24px var(--mono);padding:12px;letter-spacing:.05em;text-transform:uppercase}
+.btnrow{display:flex;gap:10px}
+.btnrow button{flex:1}
+.sent{display:flex;flex-direction:column;gap:6px}
+.sent div{display:flex;justify-content:space-between;gap:10px;font:600 14px var(--mono);color:var(--muted)}
+.sent div span:last-child{color:var(--ok);font-family:var(--sans)}
+.tips{color:var(--muted);font-size:13.5px;margin:0}
 .tips b{color:var(--ink)}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <h1>Escáner de Códigos</h1>
-    <span class="status" id="engine"></span>
-  </header>
 
-  <div class="seg" role="group" aria-label="Tipo de código">
-    <button type="button" id="modeText" aria-pressed="true">Código raspable (texto)</button>
-    <button type="button" id="modeBar" aria-pressed="false">Barras / QR</button>
-  </div>
-
-  <div class="cam" id="cam">
-    <video id="video" playsinline muted autoplay></video>
-    <div class="guide" id="guide"></div>
-    <div class="hint" id="hint">Pon el código dentro del recuadro</div>
-    <div class="camstate" id="camState">
-      <div><p>Toca <b>Abrir cámara</b> para empezar.</p></div>
+<!-- ================= COMPUTADORA ================= -->
+<section id="pcView" hidden>
+  <div class="wrap" style="padding:0">
+    <header>
+      <h1>Escáner de Códigos · Computadora</h1>
+      <span class="pill"><span class="dot" id="pcDot"></span><span id="pcState">Conectando…</span></span>
+    </header>
+    <div class="pcgrid">
+      <div style="display:grid;gap:14px">
+        <div class="latest" id="latest">
+          <span class="lbl" id="latestLbl">Esperando el primer código</span>
+          <div class="code" id="latestCode">— — —</div>
+          <div class="row">
+            <button type="button" class="primary" id="latestCopy" disabled>Copiar</button>
+            <span class="status" id="pcStatus" role="status" aria-live="polite"></span>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+          <h2>Recibidos (<span id="pcCount">0</span>)</h2>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button type="button" class="small" id="pcCopyAll">Copiar todos</button>
+            <button type="button" class="small" id="pcClear">Vaciar lista</button>
+          </div>
+        </div>
+        <ul id="pcList"></ul>
+        <div class="empty" id="pcEmpty">Los códigos que escanees con el celular aparecerán aquí al instante.</div>
+      </div>
+      <aside class="card">
+        <h2>Conecta tu celular</h2>
+        <div class="qr" id="qr"></div>
+        <p class="tips">Apunta la <b>cámara normal del celular</b> a este QR y abre el enlace. Solo la primera vez: después el celular queda conectado.</p>
+        <div class="linkbox"><input id="pairLink" readonly aria-label="Enlace para el celular"><button type="button" class="small" id="copyLink">Copiar</button></div>
+        <label class="tips"><input type="checkbox" id="autoCopy" checked> Copiar solo al llegar</label>
+        <button type="button" class="small" id="newRoom">Cambiar de celular (nuevo QR)</button>
+      </aside>
     </div>
-    <div class="camctl">
-      <button type="button" id="torch" aria-pressed="false" aria-label="Linterna" hidden>🔦</button>
-    </div>
   </div>
+</section>
 
-  <div class="big">
+<!-- ================= CELULAR ================= -->
+<section id="phoneView" hidden>
+  <div class="wrap" style="padding:0">
+    <header>
+      <h1>Escanear código</h1>
+      <span class="pill"><span class="dot" id="phDot"></span><span id="phState">Sin conectar</span></span>
+    </header>
+    <div class="card" id="noRoom" hidden>
+      <b>Este celular aún no está conectado a tu computadora.</b>
+      <span class="muted">Abre esta misma página en la computadora y escanea el QR que aparece con la cámara del celular. Puedes escanear igual: los códigos quedan abajo para copiarlos.</span>
+    </div>
+
+    <div class="cam" id="cam">
+      <video id="video" playsinline muted autoplay></video>
+      <div class="guide" id="guide"></div>
+      <div class="hint">Ajusta el código raspado de borde a borde del recuadro</div>
+      <div class="live" id="live"></div>
+      <div class="camstate" id="camState"><p>Toca <b>Abrir cámara</b></p></div>
+      <button type="button" class="torch" id="torch" aria-pressed="false" aria-label="Linterna" hidden>🔦</button>
+    </div>
+
     <button type="button" class="primary" id="startBtn">Abrir cámara</button>
-    <button type="button" class="primary" id="readBtn" hidden>Leer código</button>
-    <button type="button" class="ghost" id="autoBtn" hidden aria-pressed="false">Auto</button>
-  </div>
-  <div class="status" id="status" role="status" aria-live="polite"></div>
+    <div class="status" id="phStatus" role="status" aria-live="polite"></div>
 
-  <section class="result" id="result" hidden>
-    <label for="resultInput">Código leído — revísalo y corrígelo si hace falta</label>
-    <input id="resultInput" autocomplete="off" autocapitalize="characters" spellcheck="false">
-    <small id="resultNote"></small>
-    <div class="row">
-      <button type="button" class="primary" id="saveBtn">Guardar</button>
-      <button type="button" class="ghost" id="retryBtn">Otra vez</button>
-    </div>
-  </section>
-
-  <section>
-    <div class="listhead">
-      <h2>Códigos guardados (<span id="count">0</span>)</h2>
-      <div class="tools">
-        <button type="button" id="copyAll">Copiar todos</button>
-        <button type="button" id="shareAll">Compartir</button>
-        <button type="button" id="csvBtn">CSV</button>
-        <button type="button" id="clearBtn" class="danger">Vaciar</button>
+    <div class="card result" id="result" hidden>
+      <span class="lbl">Código leído · revísalo con el libro</span>
+      <input id="resultInput" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Código leído">
+      <div class="btnrow">
+        <button type="button" class="primary" id="sendBtn">Enviar a la computadora</button>
+        <button type="button" id="retryBtn">Leer otra vez</button>
       </div>
     </div>
-    <div class="confirm" id="confirm" hidden>
-      <span>¿Borrar todos los códigos?</span>
-      <button type="button" class="yes" id="yes">Sí, borrar</button>
-      <button type="button" id="no">Cancelar</button>
-    </div>
-    <ul id="list"></ul>
-    <div class="empty" id="empty">Aún no hay códigos guardados.</div>
-  </section>
 
-  <p class="tips"><b>Consejos:</b> raspa bien toda la zona, pon el celular a unos 10–15 cm, de frente y sin que el plateado refleje luz. Si falla una letra, corrígela a mano antes de guardar: se confunden 0/O, 1/I y 5/S.</p>
+    <div class="card">
+      <h2>Enviados hoy</h2>
+      <div class="sent" id="sentList"><span class="muted">Nada todavía.</span></div>
+    </div>
+    <p class="tips"><b>Consejos:</b> buena luz, sin reflejo en el plateado, celular quieto a 10–15 cm. Si una letra sale mal, corrígela antes de enviar: el lector aprende el formato con cada código que envías.</p>
+  </div>
+</section>
+
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 <script>
 (() => {
   const $ = id => document.getElementById(id);
-  const video = $('video'), cam = $('cam'), guide = $('guide');
-  const KEY = 'escaner-codigos:v1';
-  let mode = 'text', stream = null, track = null, busy = false, autoOn = false, autoTimer = null, lastAuto = '';
-  let items = [];
-  try { items = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch {}
-  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(items)); } catch {} };
-  const status = (m, k = '') => { $('status').textContent = m; $('status').className = 'status ' + k; };
+  const RELAY = 'https://ntfy.sh/';
+  const ls = {
+    get(k, d){ try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+    set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+  };
+  const newRoom = () => 'esc-' + Array.from(crypto.getRandomValues(new Uint8Array(16)), b => 'abcdefghijkmnpqrstuvwxyz23456789'[b % 32]).join('');
+  const hm = ts => new Date(ts).toLocaleTimeString('es', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
 
-  // ---------- beep / vibrate ----------
-  let actx;
-  function ping(){
-    try { navigator.vibrate && navigator.vibrate(60); } catch {}
-    try { actx = actx || new AudioContext(); const o = actx.createOscillator(), g = actx.createGain();
-      o.frequency.value = 1600; o.type = 'square'; g.gain.value = .04; o.connect(g).connect(actx.destination); o.start(); o.stop(actx.currentTime + .08); } catch {}
-  }
+  const hashRoom = (location.hash.match(/s=([a-z0-9-]{10,})/) || [])[1];
+  const isPhone = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+  if (hashRoom) { ls.set('phoneRoom', hashRoom); history.replaceState(null, '', location.pathname); }
 
-  // ---------- modes ----------
-  function setMode(m){
-    mode = m;
-    $('modeText').setAttribute('aria-pressed', m === 'text');
-    $('modeBar').setAttribute('aria-pressed', m === 'bar');
-    cam.classList.toggle('barcode', m === 'bar');
-    $('hint').textContent = m === 'text' ? 'Pon SOLO el código raspado dentro del recuadro' : 'Apunta al código de barras o QR';
-    $('readBtn').hidden = !stream || m === 'bar';
-    $('autoBtn').hidden = !stream || m === 'bar';
-    $('result').hidden = true;
-    stopAuto();
-    if (stream && m === 'bar') barLoop();
-  }
-  $('modeText').onclick = () => setMode('text');
-  $('modeBar').onclick = () => setMode('bar');
+  if (hashRoom || isPhone) phone(); else computer();
 
-  // ---------- camera ----------
-  $('startBtn').onclick = async () => {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ status('Este navegador no permite usar la cámara. Abre la página en Chrome o Safari.', 'bad'); return; }
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({audio:false, video:{facingMode:{ideal:'environment'}, width:{ideal:1920}, height:{ideal:1080}}});
-    } catch (e) {
-      status(e.name === 'NotAllowedError' ? 'Diste «No permitir» a la cámara. Toca el candado junto a la dirección → Permisos → Cámara → Permitir, y recarga.' : 'No se pudo abrir la cámara: ' + e.message, 'bad');
-      return;
+  // ============================================================ COMPUTER
+  function computer(){
+    $('pcView').hidden = false;
+    let room = ls.get('pcRoom', null); if (!room) { room = newRoom(); ls.set('pcRoom', room); }
+    let items = ls.get('pcItems', []);
+    let es = null;
+
+    function drawQR(){
+      const link = location.origin + location.pathname + '#s=' + room;
+      $('pairLink').value = link;
+      try { const q = qrcode(0, 'M'); q.addData(link); q.make(); $('qr').innerHTML = q.createSvgTag({cellSize: 6, margin: 2, scalable: true}); }
+      catch { $('qr').textContent = 'Abre el enlace de abajo en el celular.'; }
     }
-    video.srcObject = stream; await video.play().catch(() => {});
-    track = stream.getVideoTracks()[0];
-    try { const caps = track.getCapabilities ? track.getCapabilities() : {};
-      if (caps.focusMode && caps.focusMode.includes('continuous')) await track.applyConstraints({advanced:[{focusMode:'continuous'}]});
-      if (caps.torch) $('torch').hidden = false;
-    } catch {}
-    $('camState').hidden = true; $('startBtn').hidden = true;
-    setMode(mode);
-    status(mode === 'text' ? 'Encuadra el código y toca «Leer código».' : 'Buscando código…');
-    if (mode === 'text') warmOCR();
-  };
-  $('torch').onclick = async () => {
-    const on = $('torch').getAttribute('aria-pressed') !== 'true';
-    try { await track.applyConstraints({advanced:[{torch:on}]}); $('torch').setAttribute('aria-pressed', on); } catch {}
-  };
-
-  // crop the guide box out of the video frame, in video pixels
-  function cropGuide(scale = 1){
-    const vw = video.videoWidth, vh = video.videoHeight;
-    if (!vw) return null;
-    const box = cam.getBoundingClientRect(), g = guide.getBoundingClientRect();
-    const s = Math.max(box.width / vw, box.height / vh);            // object-fit: cover
-    const ox = (vw * s - box.width) / 2, oy = (vh * s - box.height) / 2;
-    const sx = (g.left - box.left + ox) / s, sy = (g.top - box.top + oy) / s;
-    const sw = g.width / s, sh = g.height / s;
-    const c = document.createElement('canvas');
-    c.width = Math.round(sw * scale); c.height = Math.round(sh * scale);
-    const ctx = c.getContext('2d', {willReadFrequently:true});
-    ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, c.width, c.height);
-    return c;
-  }
-
-  // grayscale + Otsu threshold, dark text on white
-  function binarize(c){
-    const ctx = c.getContext('2d'), img = ctx.getImageData(0, 0, c.width, c.height), d = img.data;
-    const hist = new Array(256).fill(0), gray = new Uint8Array(d.length / 4);
-    for (let i = 0, j = 0; i < d.length; i += 4, j++){ const v = (d[i] * .299 + d[i+1] * .587 + d[i+2] * .114) | 0; gray[j] = v; hist[v]++; }
-    const total = gray.length; let sum = 0; for (let t = 0; t < 256; t++) sum += t * hist[t];
-    let sumB = 0, wB = 0, best = 0, th = 127;
-    for (let t = 0; t < 256; t++){ wB += hist[t]; if (!wB) continue; const wF = total - wB; if (!wF) break;
-      sumB += t * hist[t]; const mB = sumB / wB, mF = (sum - sumB) / wF, between = wB * wF * (mB - mF) ** 2;
-      if (between > best){ best = between; th = t; } }
-    let dark = 0; for (const v of gray) if (v < th) dark++;
-    const invert = dark > total / 2;                                   // light text on dark → invert
-    for (let i = 0, j = 0; i < d.length; i += 4, j++){ let v = gray[j] < th ? 0 : 255; if (invert) v = 255 - v; d[i] = d[i+1] = d[i+2] = v; }
-    ctx.putImageData(img, 0, 0);
-    return c;
-  }
-
-  // ---------- OCR ----------
-  let workerP = null;
-  function warmOCR(){
-    if (workerP) return workerP;
-    $('engine').textContent = 'Preparando lector…';
-    workerP = (async () => {
-      const w = await Tesseract.createWorker('eng', 1);
-      await w.setParameters({
-        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-',
-        tessedit_pageseg_mode: '6', preserve_interword_spaces: '1'
-      });
-      $('engine').textContent = 'Lector listo';
-      return w;
-    })().catch(e => { workerP = null; $('engine').textContent = ''; status('No se pudo cargar el lector de texto. Revisa tu conexión y recarga.', 'bad'); throw e; });
-    return workerP;
-  }
-
-  const clean = t => t.split('\n').map(l => l.trim()).filter(l => l.replace(/[^A-Za-z0-9]/g, '').length >= 3).join(' ').replace(/\s+/g, ' ').trim();
-
-  async function readOnce(){
-    if (busy || !stream) return null;
-    busy = true;
-    try {
-      const w = await warmOCR();
-      const raw = cropGuide(2); if (!raw) return null;
-      const tries = [binarize(cropGuide(2)), raw];
-      let best = null;
-      for (const c of tries){
-        const {data} = await w.recognize(c);
-        const txt = clean(data.text || '');
-        if (txt && (!best || data.confidence > best.conf)) best = {txt, conf: data.confidence};
-        if (best && best.conf > 80) break;
+    function render(){
+      $('pcCount').textContent = items.length;
+      $('pcEmpty').hidden = items.length > 0;
+      $('pcList').replaceChildren(...items.map((it, i) => {
+        const li = document.createElement('li');
+        const c = document.createElement('span'); c.className = 'c'; c.textContent = it.code;
+        const t = document.createElement('span'); t.className = 't'; t.textContent = hm(it.ts);
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'small'; b.textContent = 'Copiar'; b.dataset.i = i;
+        li.append(c, t, b); if (it.copied) li.classList.add('copied'); return li;
+      }));
+    }
+    async function copy(text, quiet){
+      try { await navigator.clipboard.writeText(text); return true; }
+      catch {
+        if (quiet) return false;
+        const ta = document.createElement('textarea'); ta.value = text; ta.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(ta); ta.select();
+        let ok = false; try { ok = document.execCommand('copy'); } catch {} ta.remove(); return ok;
       }
-      return best;
-    } finally { busy = false; }
+    }
+    function markCopied(code){ items.forEach(it => { if (it.code === code) it.copied = true; }); ls.set('pcItems', items); render(); }
+    function showLatest(it){
+      $('latestLbl').textContent = 'Último código · ' + hm(it.ts);
+      $('latestCode').textContent = it.code; $('latestCopy').disabled = false;
+      const box = $('latest'); box.classList.remove('pulse'); void box.offsetWidth; box.classList.add('pulse');
+    }
+    let actx;
+    function ping(){ try { actx = actx || new AudioContext(); const o = actx.createOscillator(), g = actx.createGain(); o.frequency.value = 1500; g.gain.value = .05; o.connect(g).connect(actx.destination); o.start(); o.stop(actx.currentTime + .1); } catch {} }
+
+    async function receive(code, ts){
+      if (items.some(it => it.code === code && Math.abs(it.ts - ts) < 3000)) return;
+      const it = {code, ts: ts || Date.now()};
+      items.unshift(it); items = items.slice(0, 300); ls.set('pcItems', items);
+      render(); showLatest(it); ping();
+      document.title = '● ' + code + ' · Escáner';
+      if ($('autoCopy').checked && await copy(code, true)) { markCopied(code); $('pcStatus').textContent = 'Copiado. Pega con Cmd+V / Ctrl+V'; $('pcStatus').className = 'status ok'; }
+      else { $('pcStatus').textContent = 'Pulsa «Copiar»'; $('pcStatus').className = 'status'; }
+    }
+
+    function connect(){
+      if (es) es.close();
+      $('pcDot').className = 'dot'; $('pcState').textContent = 'Conectando…';
+      es = new EventSource(RELAY + room + '/sse');
+      es.onopen = () => { $('pcDot').className = 'dot on'; $('pcState').textContent = 'Listo para recibir'; };
+      es.onerror = () => { $('pcDot').className = 'dot bad'; $('pcState').textContent = 'Reconectando…'; };
+      es.onmessage = e => {
+        try { const m = JSON.parse(e.data); if (m.event !== 'message') return;
+          let p; try { p = JSON.parse(m.message); } catch { p = {code: m.message}; }
+          if (p && p.code) receive(String(p.code).slice(0, 80), p.ts);
+        } catch {}
+      };
+    }
+
+    $('latestCopy').onclick = async () => { const c = $('latestCode').textContent; if (await copy(c)) { markCopied(c); $('pcStatus').textContent = 'Copiado'; $('pcStatus').className = 'status ok'; } };
+    $('pcList').onclick = async e => { const b = e.target.closest('button'); if (!b) return; const c = items[+b.dataset.i].code; if (await copy(c)) { markCopied(c); $('pcStatus').textContent = 'Copiado: ' + c; $('pcStatus').className = 'status ok'; } };
+    $('pcCopyAll').onclick = async () => { if (items.length && await copy(items.slice().reverse().map(i => i.code).join('\n'))) { $('pcStatus').textContent = `Copiados ${items.length} códigos`; $('pcStatus').className = 'status ok'; } };
+    $('pcClear').onclick = () => { items = []; ls.set('pcItems', items); render(); };
+    $('copyLink').onclick = () => copy($('pairLink').value);
+    $('autoCopy').checked = ls.get('pcAutoCopy', true);
+    $('autoCopy').onchange = () => ls.set('pcAutoCopy', $('autoCopy').checked);
+    $('newRoom').onclick = () => { room = newRoom(); ls.set('pcRoom', room); drawQR(); connect(); };
+    window.addEventListener('focus', () => { document.title = 'Escáner de Códigos'; });
+
+    drawQR(); render(); connect();
   }
 
-  $('readBtn').onclick = async () => {
-    stopAuto();
-    $('readBtn').disabled = true; status('Leyendo…');
-    try {
-      const r = await readOnce();
-      if (!r || r.txt.replace(/[^A-Za-z0-9]/g, '').length < 4){ status('No distinguí el código. Acércate, que salga nítido y sin reflejo, e intenta de nuevo.', 'bad'); return; }
-      showResult(r.txt, r.conf);
-    } catch {} finally { $('readBtn').disabled = false; }
-  };
+  // ============================================================ PHONE
+  function phone(){
+    $('phoneView').hidden = false;
+    const room = ls.get('phoneRoom', null);
+    if (room) { $('phDot').className = 'dot on'; $('phState').textContent = 'Conectado a la computadora'; }
+    else { $('noRoom').hidden = false; $('sendBtn').textContent = 'Guardar'; }
 
-  // auto: read repeatedly, accept when two consecutive reads agree
-  function stopAuto(){ autoOn = false; clearTimeout(autoTimer); $('autoBtn').setAttribute('aria-pressed', 'false'); $('autoBtn').textContent = 'Auto'; guide.classList.remove('hit'); }
-  $('autoBtn').onclick = () => {
-    if (autoOn) { stopAuto(); status(''); return; }
-    autoOn = true; lastAuto = ''; $('autoBtn').setAttribute('aria-pressed', 'true'); $('autoBtn').textContent = 'Parar';
-    $('result').hidden = true; status('Leyendo en automático… mantén el celular quieto.');
-    const tick = async () => {
-      if (!autoOn) return;
-      try {
-        const r = await readOnce();
-        if (r && r.txt.replace(/[^A-Za-z0-9]/g, '').length >= 6 && r.conf > 55){
-          if (r.txt === lastAuto){ stopAuto(); showResult(r.txt, r.conf); return; }
-          lastAuto = r.txt; guide.classList.add('hit');
-        } else { lastAuto = ''; guide.classList.remove('hit'); }
-      } catch { stopAuto(); return; }
-      autoTimer = setTimeout(tick, 250);
-    };
-    tick();
-  };
+    const video = $('video'), cam = $('cam'), guide = $('guide');
+    let stream = null, track = null, running = false, votes = [], sent = ls.get('phSent', []);
+    const today = new Date().toDateString();
+    sent = sent.filter(s => new Date(s.ts).toDateString() === today);
 
-  function showResult(txt, conf){
-    ping();
-    $('resultInput').value = txt;
-    $('resultNote').textContent = conf != null ? `Confianza del lector: ${Math.round(conf)} %. ${conf < 75 ? 'Revísalo con cuidado.' : ''}` : '';
-    $('result').hidden = false;
-    status('');
-    $('result').scrollIntoView({block:'nearest', behavior:'smooth'});
-  }
-  $('saveBtn').onclick = () => {
-    const v = $('resultInput').value.trim(); if (!v) return;
-    addItem(v, mode === 'text' ? 'Texto' : 'Barras/QR');
-    $('result').hidden = true; status(`Guardado: ${v}`, 'ok');
-  };
-  $('retryBtn').onclick = () => { $('result').hidden = true; status(''); if (mode === 'bar') barLoop(); };
-
-  // ---------- barcode ----------
-  let detector = null;
-  if ('BarcodeDetector' in window) { try { detector = new BarcodeDetector(); } catch {} }
-  let zx = null;
-  async function barLoop(){
-    if (mode !== 'bar' || !stream || !$('result').hidden) return;
-    let found = null;
-    try {
-      const c = cropGuide(1);
-      if (c){
-        if (detector){ const r = await detector.detect(c); if (r.length) found = r[0].rawValue; }
-        else {
-          if (!zx){ const hints = new Map(); hints.set(ZXing.DecodeHintType.TRY_HARDER, true); zx = new ZXing.MultiFormatReader(); zx.setHints(hints); }
-          try { found = zx.decode(new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(new ZXing.HTMLCanvasElementLuminanceSource(c)))).getText(); } catch {}
+    // ---- format learning: shape of confirmed codes (letters vs digits per position)
+    // seed = shape of the book codes this was built for (5-char prefix + 12 digits)
+    let templates = ls.get('phTemplates', ['D2L2S000000000000']);
+    const TO_L = {'0':'O','1':'I','2':'Z','4':'A','5':'S','6':'G','7':'T','8':'B'};
+    const TO_D = {'O':'0','Q':'0','D':'0','I':'1','L':'1','T':'7','Z':'2','A':'4','S':'5','G':'6','B':'8'};
+    const ALTS = {'1':'IL','0':'OD','5':'S','8':'B','2':'Z','6':'G','7':'T','4':'A'};
+    const shapeOf = c => c.replace(/[A-Z]/g, 'A').replace(/[0-9]/g, '9');
+    const cleanLine = raw => raw.toUpperCase().split('\n').map(l => l.replace(/[^A-Z0-9]/g, '')).filter(Boolean).sort((a, b) => b.length - a.length)[0] || '';
+    function fit(t){
+      let best = null;
+      for (const k of templates){
+        const L = k.length, sh = shapeOf(k);
+        for (const off of [0, 1, 2]){
+          const cand = t.slice(off, off + L); if (cand.length !== L) continue;
+          let out = '', cost = off + Math.max(0, t.length - off - L);
+          for (let i = 0; i < L; i++){
+            const c = cand[i];
+            if (sh[i] === 'A' && /[0-9]/.test(c)){ out += (ALTS[c] || '').includes(k[i]) ? k[i] : (TO_L[c] || c); cost++; }
+            else if (sh[i] === '9' && /[A-Z]/.test(c)){ out += TO_D[c] || c; cost++; }
+            else out += c;
+          }
+          if (!best || cost < best.cost) best = {out, cost};
         }
       }
-    } catch {}
-    if (found){ showResult(found, null); return; }
-    setTimeout(barLoop, 200);
+      return best && best.cost <= Math.ceil(best.out.length / 3) ? best.out : t;
+    }
+    function learn(code){
+      if (!/^[A-Z0-9]{6,40}$/.test(code)) return;
+      templates = [code, ...templates.filter(t => shapeOf(t) !== shapeOf(code) || t.length !== code.length)].slice(0, 6);
+      ls.set('phTemplates', templates);
+    }
+
+    // ---- image processing: crop guide → gray → contrast → adaptive threshold
+    function cropGuide(targetH){
+      const vw = video.videoWidth, vh = video.videoHeight; if (!vw) return null;
+      const box = cam.getBoundingClientRect(), g = guide.getBoundingClientRect();
+      const s = Math.max(box.width / vw, box.height / vh);
+      const ox = (vw * s - box.width) / 2, oy = (vh * s - box.height) / 2;
+      const sx = (g.left - box.left + ox) / s, sy = (g.top - box.top + oy) / s, sw = g.width / s, sh = g.height / s;
+      const k = targetH / sh, pad = 20;
+      const c = document.createElement('canvas'); c.width = Math.round(sw * k) + pad * 2; c.height = targetH + pad * 2;
+      const ctx = c.getContext('2d', {willReadFrequently: true});
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(video, sx, sy, sw, sh, pad, pad, c.width - pad * 2, targetH);
+      return {c, pad};
+    }
+    function adaptive({c, pad}, t = 0.2){
+      const ctx = c.getContext('2d'), W = c.width, H = c.height;
+      const img = ctx.getImageData(0, 0, W, H), d = img.data, g = new Float32Array(W * H);
+      let mn = 255, mx = 0;
+      for (let i = 0, j = 0; i < d.length; i += 4, j++){ const v = d[i] * .299 + d[i+1] * .587 + d[i+2] * .114; g[j] = v;
+        const x = j % W, y = (j / W) | 0; if (x >= pad && x < W - pad && y >= pad && y < H - pad){ if (v < mn) mn = v; if (v > mx) mx = v; } }
+      const span = Math.max(1, mx - mn); for (let j = 0; j < g.length; j++) g[j] = Math.min(255, Math.max(0, (g[j] - mn) * 255 / span));
+      const I = new Float64Array((W + 1) * (H + 1));
+      for (let y = 0; y < H; y++){ let s = 0; for (let x = 0; x < W; x++){ s += g[y * W + x]; I[(y + 1) * (W + 1) + x + 1] = I[y * (W + 1) + x + 1] + s; } }
+      const r = (H - pad * 2) >> 1;
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++){
+        const j = y * W + x; let v = 255;
+        if (x >= pad && x < W - pad && y >= pad && y < H - pad){
+          const x1 = Math.max(0, x - r), x2 = Math.min(W - 1, x + r), y1 = Math.max(0, y - r), y2 = Math.min(H - 1, y + r);
+          const cnt = (x2 - x1 + 1) * (y2 - y1 + 1), sum = I[(y2 + 1) * (W + 1) + x2 + 1] - I[y1 * (W + 1) + x2 + 1] - I[(y2 + 1) * (W + 1) + x1] + I[y1 * (W + 1) + x1];
+          v = g[j] * cnt < sum * (1 - t) ? 0 : 255;
+        }
+        d[j * 4] = d[j * 4 + 1] = d[j * 4 + 2] = v;
+      }
+      ctx.putImageData(img, 0, 0); return c;
+    }
+
+    // ---- OCR engine (loaded on demand)
+    let workerP = null;
+    function engine(){
+      if (workerP) return workerP;
+      workerP = new Promise((res, rej) => {
+        const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+        s.onload = res; s.onerror = rej; document.head.appendChild(s);
+      }).then(async () => {
+        const w = await Tesseract.createWorker('eng', 1);
+        await w.setParameters({tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', tessedit_pageseg_mode: '7'});
+        return w;
+      }).catch(e => { workerP = null; throw e; });
+      return workerP;
+    }
+
+    function status(m, k = ''){ $('phStatus').textContent = m; $('phStatus').className = 'status ' + k; }
+
+    $('startBtn').onclick = async () => {
+      if (!navigator.mediaDevices?.getUserMedia){ status('Este navegador no permite la cámara. Abre la página en Chrome o Safari.', 'bad'); return; }
+      $('startBtn').disabled = true; status('Abriendo cámara y preparando el lector…');
+      try { stream = await navigator.mediaDevices.getUserMedia({audio: false, video: {facingMode: {ideal: 'environment'}, width: {ideal: 1920}, height: {ideal: 1080}}}); }
+      catch (e){ $('startBtn').disabled = false; status(e.name === 'NotAllowedError' ? 'Bloqueaste la cámara. Toca el candado junto a la dirección → Permisos → Cámara → Permitir, y recarga.' : 'No se pudo abrir la cámara: ' + e.message, 'bad'); return; }
+      video.srcObject = stream; await video.play().catch(() => {});
+      track = stream.getVideoTracks()[0];
+      try { const caps = track.getCapabilities?.() || {};
+        if (caps.focusMode?.includes('continuous')) await track.applyConstraints({advanced: [{focusMode: 'continuous'}]});
+        if (caps.torch) $('torch').hidden = false; } catch {}
+      $('camState').hidden = true; $('startBtn').hidden = true;
+      try { await engine(); } catch { status('No se pudo cargar el lector. Revisa tu conexión y recarga.', 'bad'); return; }
+      status('Leyendo… mantén el celular quieto.');
+      scan();
+    };
+    $('torch').onclick = async () => { const on = $('torch').getAttribute('aria-pressed') !== 'true';
+      try { await track.applyConstraints({advanced: [{torch: on}]}); $('torch').setAttribute('aria-pressed', on); } catch {} };
+
+    // continuous reading with voting: accept a value once it wins 2+ of the recent reads
+    async function scan(){
+      if (running) return; running = true; votes = [];
+      const w = await engine();
+      while (running && $('result').hidden){
+        const reads = [];
+        for (const [h, t] of [[110, .2], [150, .15]]){
+          const crop = cropGuide(h); if (!crop) break;
+          const {data} = await w.recognize(adaptive(crop, t));
+          const v = fit(cleanLine(data.text || ''));
+          if (v.length >= 8) reads.push(v);
+        }
+        votes.push(...reads); votes = votes.slice(-8);
+        const tally = {}; votes.forEach(v => tally[v] = (tally[v] || 0) + 1);
+        const top = Object.entries(tally).sort((a, b) => b[1] - a[1])[0];
+        $('live').textContent = top ? top[0] : '';
+        guide.classList.toggle('hit', !!top && top[1] >= 2);
+        if (top && top[1] >= 3){ found(top[0]); break; }
+        await new Promise(r => setTimeout(r, 60));
+      }
+      running = false;
+    }
+    function found(code){
+      try { navigator.vibrate?.(80); } catch {}
+      $('resultInput').value = code; $('result').hidden = false; $('live').textContent = '';
+      guide.classList.remove('hit');
+      status(room ? 'Revisa el código y toca «Enviar».' : 'Revisa el código y toca «Guardar».');
+      $('result').scrollIntoView({block: 'nearest', behavior: 'smooth'});
+    }
+    $('retryBtn').onclick = () => { $('result').hidden = true; status('Leyendo… mantén el celular quieto.'); scan(); };
+
+    function renderSent(){
+      $('sentList').replaceChildren(...(sent.length ? sent.map(s => { const d = document.createElement('div');
+        const a = document.createElement('span'); a.textContent = s.code; const b = document.createElement('span'); b.textContent = (s.ok ? '✓ ' : '') + hm(s.ts); d.append(a, b); return d; })
+        : [Object.assign(document.createElement('span'), {className: 'muted', textContent: 'Nada todavía.'})]));
+    }
+    $('sendBtn').onclick = async () => {
+      const code = $('resultInput').value.toUpperCase().replace(/\s+/g, '').trim(); if (!code) return;
+      $('sendBtn').disabled = true;
+      let ok = false;
+      if (room){
+        try { const r = await fetch(RELAY + room, {method: 'POST', body: JSON.stringify({code, ts: Date.now()})}); ok = r.ok; } catch {}
+      }
+      $('sendBtn').disabled = false;
+      if (room && !ok){ status('No se pudo enviar. Revisa la conexión a internet y toca «Enviar» otra vez.', 'bad'); return; }
+      learn(code);
+      sent.unshift({code, ts: Date.now(), ok}); ls.set('phSent', sent.slice(0, 200)); renderSent();
+      status(room ? `Enviado: ${code}` : `Guardado: ${code}`, 'ok');
+      $('result').hidden = true;
+      setTimeout(() => { if ($('result').hidden) { status('Listo para el siguiente. Leyendo…'); scan(); } }, 1200);
+    };
+    $('sentList').onclick = async e => { const d = e.target.closest('div'); if (!d) return; try { await navigator.clipboard.writeText(d.firstChild.textContent); status('Copiado', 'ok'); } catch {} };
+    renderSent();
   }
 
-  // ---------- list ----------
-  const fmt = ts => new Date(ts).toLocaleString('es', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'});
-  function addItem(code, type){ items.unshift({code, type, ts: Date.now()}); save(); render(); }
-  function render(){
-    $('count').textContent = items.length;
-    $('empty').hidden = items.length > 0;
-    $('list').replaceChildren(...items.map((it, i) => {
-      const li = document.createElement('li');
-      li.innerHTML = `<span class="n">${items.length - i}</span><span class="c"></span><button type="button" data-a="copy">Copiar</button><button type="button" class="x" data-a="del" aria-label="Borrar">✕</button>`;
-      const c = li.querySelector('.c'); c.textContent = it.code;
-      const t = document.createElement('span'); t.className = 't'; t.textContent = `${it.type} · ${fmt(it.ts)}`; c.appendChild(t);
-      li.dataset.i = i; return li;
-    }));
-  }
-  async function copy(text, msg){
-    try { await navigator.clipboard.writeText(text); status(msg, 'ok'); }
-    catch { status('No se pudo copiar. Mantén el dedo sobre el código para seleccionarlo.', 'bad'); }
-  }
-  $('list').onclick = e => {
-    const b = e.target.closest('button'); if (!b) return;
-    const i = +b.closest('li').dataset.i;
-    if (b.dataset.a === 'copy') copy(items[i].code, `Copiado: ${items[i].code}`);
-    else { items.splice(i, 1); save(); render(); }
-  };
-  const asText = () => items.slice().reverse().map(it => it.code).join('\n');
-  $('copyAll').onclick = () => items.length && copy(asText(), `Copiados ${items.length} códigos.`);
-  $('shareAll').onclick = async () => {
-    if (!items.length) return;
-    if (navigator.share) { try { await navigator.share({title:'Códigos escaneados', text: asText()}); } catch {} }
-    else copy(asText(), 'Tu navegador no comparte; los copié al portapapeles.');
-  };
-  $('csvBtn').onclick = () => {
-    if (!items.length) return;
-    const esc = v => /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
-    const csv = '﻿Código,Tipo,Fecha\r\n' + items.slice().reverse().map(it => [esc(it.code), it.type, new Date(it.ts).toISOString().replace('T', ' ').slice(0, 19)].join(',')).join('\r\n');
-    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
-    a.download = 'codigos-' + new Date().toISOString().slice(0, 10) + '.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-  };
-  $('clearBtn').onclick = () => { if (items.length) $('confirm').hidden = false; };
-  $('no').onclick = () => { $('confirm').hidden = true; };
-  $('yes').onclick = () => { items = []; save(); render(); $('confirm').hidden = true; };
-
-  render();
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 })();
 </script>
