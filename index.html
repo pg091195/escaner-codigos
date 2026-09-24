@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0F1115">
+<title>Escáner de Códigos</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<style>
+:root{
+  --bg:#0F1115; --panel:#181B22; --line:#2A2F3A; --ink:#EEF0F4; --muted:#9AA1AE;
+  --accent:#7C95FF; --accent-ink:#0B1030; --ok:#4FD18B; --bad:#FF8479;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 var(--sans)}
+body{padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+.wrap{max-width:720px;margin:0 auto;padding:12px 14px 40px;display:grid;gap:14px}
+header{display:flex;align-items:center;justify-content:space-between;gap:10px}
+h1{font-size:19px;margin:0}
+.seg{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:3px}
+.seg button{flex:1;border:0;background:transparent;color:var(--muted);font:600 14px var(--sans);padding:10px 8px;border-radius:9px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+
+.cam{position:relative;border-radius:16px;overflow:hidden;background:#000;aspect-ratio:3/4;max-height:62vh;width:100%}
+.cam video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.guide{position:absolute;left:8%;right:8%;top:38%;height:22%;border:3px solid var(--accent);border-radius:12px;box-shadow:0 0 0 100vmax rgba(0,0,0,.45);transition:all .2s}
+.cam.barcode .guide{top:25%;height:45%}
+.guide.hit{border-color:var(--ok)}
+.hint{position:absolute;left:0;right:0;top:12px;text-align:center;font-weight:600;font-size:14px;text-shadow:0 1px 3px #000;padding:0 12px}
+.camstate{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:20px;color:var(--muted)}
+.camctl{position:absolute;right:10px;bottom:10px;display:flex;gap:8px}
+.camctl button{width:46px;height:46px;border-radius:50%;border:0;background:rgba(0,0,0,.55);color:#fff;font-size:20px;cursor:pointer}
+.camctl button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+
+.big{display:flex;gap:10px}
+button.primary,button.ghost{font:700 16px var(--sans);border-radius:12px;min-height:54px;padding:0 18px;cursor:pointer;border:1px solid var(--line)}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);flex:1}
+button.ghost{background:var(--panel);color:var(--ink)}
+button:disabled{opacity:.5}
+button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.status{min-height:22px;color:var(--muted);font-size:14px}
+.status.ok{color:var(--ok)}.status.bad{color:var(--bad)}
+
+.result{background:var(--panel);border:2px solid var(--ok);border-radius:14px;padding:14px;display:grid;gap:10px}
+.result label{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.result input{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:10px;color:var(--ink);font:700 22px var(--mono);padding:12px;letter-spacing:.04em}
+.result .row{display:flex;gap:10px}
+.result .row button{flex:1}
+.result small{color:var(--muted)}
+
+.listhead{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.listhead h2{font-size:16px;margin:0}
+.tools{display:flex;gap:8px;flex-wrap:wrap}
+.tools button{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:10px;font:600 13.5px var(--sans);padding:9px 12px;cursor:pointer}
+.tools .danger{color:var(--bad)}
+ul{list-style:none;margin:0;padding:0;background:var(--panel);border:1px solid var(--line);border-radius:14px}
+li{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line)}
+li:last-child{border-bottom:0}
+li .n{color:var(--muted);font:13px var(--mono);min-width:26px}
+li .c{flex:1;min-width:0;font:700 16px var(--mono);word-break:break-all}
+li .t{color:var(--muted);font-size:12px;display:block;font-family:var(--sans);font-weight:400}
+li button{background:transparent;border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:7px 10px;font:600 13px var(--sans);cursor:pointer}
+li .x{color:var(--muted);border-color:transparent}
+.empty{padding:22px;text-align:center;color:var(--muted)}
+.confirm{background:#3A1D1B;color:var(--bad);border-radius:10px;padding:10px 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.confirm button{border-radius:8px;padding:8px 12px;font:600 13px var(--sans);border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+.confirm .yes{background:var(--bad);color:#fff;border-color:var(--bad)}
+[hidden]{display:none!important}
+.tips{color:var(--muted);font-size:13.5px}
+.tips b{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Escáner de Códigos</h1>
+    <span class="status" id="engine"></span>
+  </header>
+
+  <div class="seg" role="group" aria-label="Tipo de código">
+    <button type="button" id="modeText" aria-pressed="true">Código raspable (texto)</button>
+    <button type="button" id="modeBar" aria-pressed="false">Barras / QR</button>
+  </div>
+
+  <div class="cam" id="cam">
+    <video id="video" playsinline muted autoplay></video>
+    <div class="guide" id="guide"></div>
+    <div class="hint" id="hint">Pon el código dentro del recuadro</div>
+    <div class="camstate" id="camState">
+      <div><p>Toca <b>Abrir cámara</b> para empezar.</p></div>
+    </div>
+    <div class="camctl">
+      <button type="button" id="torch" aria-pressed="false" aria-label="Linterna" hidden>🔦</button>
+    </div>
+  </div>
+
+  <div class="big">
+    <button type="button" class="primary" id="startBtn">Abrir cámara</button>
+    <button type="button" class="primary" id="readBtn" hidden>Leer código</button>
+    <button type="button" class="ghost" id="autoBtn" hidden aria-pressed="false">Auto</button>
+  </div>
+  <div class="status" id="status" role="status" aria-live="polite"></div>
+
+  <section class="result" id="result" hidden>
+    <label for="resultInput">Código leído — revísalo y corrígelo si hace falta</label>
+    <input id="resultInput" autocomplete="off" autocapitalize="characters" spellcheck="false">
+    <small id="resultNote"></small>
+    <div class="row">
+      <button type="button" class="primary" id="saveBtn">Guardar</button>
+      <button type="button" class="ghost" id="retryBtn">Otra vez</button>
+    </div>
+  </section>
+
+  <section>
+    <div class="listhead">
+      <h2>Códigos guardados (<span id="count">0</span>)</h2>
+      <div class="tools">
+        <button type="button" id="copyAll">Copiar todos</button>
+        <button type="button" id="shareAll">Compartir</button>
+        <button type="button" id="csvBtn">CSV</button>
+        <button type="button" id="clearBtn" class="danger">Vaciar</button>
+      </div>
+    </div>
+    <div class="confirm" id="confirm" hidden>
+      <span>¿Borrar todos los códigos?</span>
+      <button type="button" class="yes" id="yes">Sí, borrar</button>
+      <button type="button" id="no">Cancelar</button>
+    </div>
+    <ul id="list"></ul>
+    <div class="empty" id="empty">Aún no hay códigos guardados.</div>
+  </section>
+
+  <p class="tips"><b>Consejos:</b> raspa bien toda la zona, pon el celular a unos 10–15 cm, de frente y sin que el plateado refleje luz. Si falla una letra, corrígela a mano antes de guardar: se confunden 0/O, 1/I y 5/S.</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const video = $('video'), cam = $('cam'), guide = $('guide');
+  const KEY = 'escaner-codigos:v1';
+  let mode = 'text', stream = null, track = null, busy = false, autoOn = false, autoTimer = null, lastAuto = '';
+  let items = [];
+  try { items = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch {}
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(items)); } catch {} };
+  const status = (m, k = '') => { $('status').textContent = m; $('status').className = 'status ' + k; };
+
+  // ---------- beep / vibrate ----------
+  let actx;
+  function ping(){
+    try { navigator.vibrate && navigator.vibrate(60); } catch {}
+    try { actx = actx || new AudioContext(); const o = actx.createOscillator(), g = actx.createGain();
+      o.frequency.value = 1600; o.type = 'square'; g.gain.value = .04; o.connect(g).connect(actx.destination); o.start(); o.stop(actx.currentTime + .08); } catch {}
+  }
+
+  // ---------- modes ----------
+  function setMode(m){
+    mode = m;
+    $('modeText').setAttribute('aria-pressed', m === 'text');
+    $('modeBar').setAttribute('aria-pressed', m === 'bar');
+    cam.classList.toggle('barcode', m === 'bar');
+    $('hint').textContent = m === 'text' ? 'Pon SOLO el código raspado dentro del recuadro' : 'Apunta al código de barras o QR';
+    $('readBtn').hidden = !stream || m === 'bar';
+    $('autoBtn').hidden = !stream || m === 'bar';
+    $('result').hidden = true;
+    stopAuto();
+    if (stream && m === 'bar') barLoop();
+  }
+  $('modeText').onclick = () => setMode('text');
+  $('modeBar').onclick = () => setMode('bar');
+
+  // ---------- camera ----------
+  $('startBtn').onclick = async () => {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ status('Este navegador no permite usar la cámara. Abre la página en Chrome o Safari.', 'bad'); return; }
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({audio:false, video:{facingMode:{ideal:'environment'}, width:{ideal:1920}, height:{ideal:1080}}});
+    } catch (e) {
+      status(e.name === 'NotAllowedError' ? 'Diste «No permitir» a la cámara. Toca el candado junto a la dirección → Permisos → Cámara → Permitir, y recarga.' : 'No se pudo abrir la cámara: ' + e.message, 'bad');
+      return;
+    }
+    video.srcObject = stream; await video.play().catch(() => {});
+    track = stream.getVideoTracks()[0];
+    try { const caps = track.getCapabilities ? track.getCapabilities() : {};
+      if (caps.focusMode && caps.focusMode.includes('continuous')) await track.applyConstraints({advanced:[{focusMode:'continuous'}]});
+      if (caps.torch) $('torch').hidden = false;
+    } catch {}
+    $('camState').hidden = true; $('startBtn').hidden = true;
+    setMode(mode);
+    status(mode === 'text' ? 'Encuadra el código y toca «Leer código».' : 'Buscando código…');
+    if (mode === 'text') warmOCR();
+  };
+  $('torch').onclick = async () => {
+    const on = $('torch').getAttribute('aria-pressed') !== 'true';
+    try { await track.applyConstraints({advanced:[{torch:on}]}); $('torch').setAttribute('aria-pressed', on); } catch {}
+  };
+
+  // crop the guide box out of the video frame, in video pixels
+  function cropGuide(scale = 1){
+    const vw = video.videoWidth, vh = video.videoHeight;
+    if (!vw) return null;
+    const box = cam.getBoundingClientRect(), g = guide.getBoundingClientRect();
+    const s = Math.max(box.width / vw, box.height / vh);            // object-fit: cover
+    const ox = (vw * s - box.width) / 2, oy = (vh * s - box.height) / 2;
+    const sx = (g.left - box.left + ox) / s, sy = (g.top - box.top + oy) / s;
+    const sw = g.width / s, sh = g.height / s;
+    const c = document.createElement('canvas');
+    c.width = Math.round(sw * scale); c.height = Math.round(sh * scale);
+    const ctx = c.getContext('2d', {willReadFrequently:true});
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, c.width, c.height);
+    return c;
+  }
+
+  // grayscale + Otsu threshold, dark text on white
+  function binarize(c){
+    const ctx = c.getContext('2d'), img = ctx.getImageData(0, 0, c.width, c.height), d = img.data;
+    const hist = new Array(256).fill(0), gray = new Uint8Array(d.length / 4);
+    for (let i = 0, j = 0; i < d.length; i += 4, j++){ const v = (d[i] * .299 + d[i+1] * .587 + d[i+2] * .114) | 0; gray[j] = v; hist[v]++; }
+    const total = gray.length; let sum = 0; for (let t = 0; t < 256; t++) sum += t * hist[t];
+    let sumB = 0, wB = 0, best = 0, th = 127;
+    for (let t = 0; t < 256; t++){ wB += hist[t]; if (!wB) continue; const wF = total - wB; if (!wF) break;
+      sumB += t * hist[t]; const mB = sumB / wB, mF = (sum - sumB) / wF, between = wB * wF * (mB - mF) ** 2;
+      if (between > best){ best = between; th = t; } }
+    let dark = 0; for (const v of gray) if (v < th) dark++;
+    const invert = dark > total / 2;                                   // light text on dark → invert
+    for (let i = 0, j = 0; i < d.length; i += 4, j++){ let v = gray[j] < th ? 0 : 255; if (invert) v = 255 - v; d[i] = d[i+1] = d[i+2] = v; }
+    ctx.putImageData(img, 0, 0);
+    return c;
+  }
+
+  // ---------- OCR ----------
+  let workerP = null;
+  function warmOCR(){
+    if (workerP) return workerP;
+    $('engine').textContent = 'Preparando lector…';
+    workerP = (async () => {
+      const w = await Tesseract.createWorker('eng', 1);
+      await w.setParameters({
+        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-',
+        tessedit_pageseg_mode: '6', preserve_interword_spaces: '1'
+      });
+      $('engine').textContent = 'Lector listo';
+      return w;
+    })().catch(e => { workerP = null; $('engine').textContent = ''; status('No se pudo cargar el lector de texto. Revisa tu conexión y recarga.', 'bad'); throw e; });
+    return workerP;
+  }
+
+  const clean = t => t.split('\n').map(l => l.trim()).filter(l => l.replace(/[^A-Za-z0-9]/g, '').length >= 3).join(' ').replace(/\s+/g, ' ').trim();
+
+  async function readOnce(){
+    if (busy || !stream) return null;
+    busy = true;
+    try {
+      const w = await warmOCR();
+      const raw = cropGuide(2); if (!raw) return null;
+      const tries = [binarize(cropGuide(2)), raw];
+      let best = null;
+      for (const c of tries){
+        const {data} = await w.recognize(c);
+        const txt = clean(data.text || '');
+        if (txt && (!best || data.confidence > best.conf)) best = {txt, conf: data.confidence};
+        if (best && best.conf > 80) break;
+      }
+      return best;
+    } finally { busy = false; }
+  }
+
+  $('readBtn').onclick = async () => {
+    stopAuto();
+    $('readBtn').disabled = true; status('Leyendo…');
+    try {
+      const r = await readOnce();
+      if (!r || r.txt.replace(/[^A-Za-z0-9]/g, '').length < 4){ status('No distinguí el código. Acércate, que salga nítido y sin reflejo, e intenta de nuevo.', 'bad'); return; }
+      showResult(r.txt, r.conf);
+    } catch {} finally { $('readBtn').disabled = false; }
+  };
+
+  // auto: read repeatedly, accept when two consecutive reads agree
+  function stopAuto(){ autoOn = false; clearTimeout(autoTimer); $('autoBtn').setAttribute('aria-pressed', 'false'); $('autoBtn').textContent = 'Auto'; guide.classList.remove('hit'); }
+  $('autoBtn').onclick = () => {
+    if (autoOn) { stopAuto(); status(''); return; }
+    autoOn = true; lastAuto = ''; $('autoBtn').setAttribute('aria-pressed', 'true'); $('autoBtn').textContent = 'Parar';
+    $('result').hidden = true; status('Leyendo en automático… mantén el celular quieto.');
+    const tick = async () => {
+      if (!autoOn) return;
+      try {
+        const r = await readOnce();
+        if (r && r.txt.replace(/[^A-Za-z0-9]/g, '').length >= 6 && r.conf > 55){
+          if (r.txt === lastAuto){ stopAuto(); showResult(r.txt, r.conf); return; }
+          lastAuto = r.txt; guide.classList.add('hit');
+        } else { lastAuto = ''; guide.classList.remove('hit'); }
+      } catch { stopAuto(); return; }
+      autoTimer = setTimeout(tick, 250);
+    };
+    tick();
+  };
+
+  function showResult(txt, conf){
+    ping();
+    $('resultInput').value = txt;
+    $('resultNote').textContent = conf != null ? `Confianza del lector: ${Math.round(conf)} %. ${conf < 75 ? 'Revísalo con cuidado.' : ''}` : '';
+    $('result').hidden = false;
+    status('');
+    $('result').scrollIntoView({block:'nearest', behavior:'smooth'});
+  }
+  $('saveBtn').onclick = () => {
+    const v = $('resultInput').value.trim(); if (!v) return;
+    addItem(v, mode === 'text' ? 'Texto' : 'Barras/QR');
+    $('result').hidden = true; status(`Guardado: ${v}`, 'ok');
+  };
+  $('retryBtn').onclick = () => { $('result').hidden = true; status(''); if (mode === 'bar') barLoop(); };
+
+  // ---------- barcode ----------
+  let detector = null;
+  if ('BarcodeDetector' in window) { try { detector = new BarcodeDetector(); } catch {} }
+  let zx = null;
+  async function barLoop(){
+    if (mode !== 'bar' || !stream || !$('result').hidden) return;
+    let found = null;
+    try {
+      const c = cropGuide(1);
+      if (c){
+        if (detector){ const r = await detector.detect(c); if (r.length) found = r[0].rawValue; }
+        else {
+          if (!zx){ const hints = new Map(); hints.set(ZXing.DecodeHintType.TRY_HARDER, true); zx = new ZXing.MultiFormatReader(); zx.setHints(hints); }
+          try { found = zx.decode(new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(new ZXing.HTMLCanvasElementLuminanceSource(c)))).getText(); } catch {}
+        }
+      }
+    } catch {}
+    if (found){ showResult(found, null); return; }
+    setTimeout(barLoop, 200);
+  }
+
+  // ---------- list ----------
+  const fmt = ts => new Date(ts).toLocaleString('es', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'});
+  function addItem(code, type){ items.unshift({code, type, ts: Date.now()}); save(); render(); }
+  function render(){
+    $('count').textContent = items.length;
+    $('empty').hidden = items.length > 0;
+    $('list').replaceChildren(...items.map((it, i) => {
+      const li = document.createElement('li');
+      li.innerHTML = `<span class="n">${items.length - i}</span><span class="c"></span><button type="button" data-a="copy">Copiar</button><button type="button" class="x" data-a="del" aria-label="Borrar">✕</button>`;
+      const c = li.querySelector('.c'); c.textContent = it.code;
+      const t = document.createElement('span'); t.className = 't'; t.textContent = `${it.type} · ${fmt(it.ts)}`; c.appendChild(t);
+      li.dataset.i = i; return li;
+    }));
+  }
+  async function copy(text, msg){
+    try { await navigator.clipboard.writeText(text); status(msg, 'ok'); }
+    catch { status('No se pudo copiar. Mantén el dedo sobre el código para seleccionarlo.', 'bad'); }
+  }
+  $('list').onclick = e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const i = +b.closest('li').dataset.i;
+    if (b.dataset.a === 'copy') copy(items[i].code, `Copiado: ${items[i].code}`);
+    else { items.splice(i, 1); save(); render(); }
+  };
+  const asText = () => items.slice().reverse().map(it => it.code).join('\n');
+  $('copyAll').onclick = () => items.length && copy(asText(), `Copiados ${items.length} códigos.`);
+  $('shareAll').onclick = async () => {
+    if (!items.length) return;
+    if (navigator.share) { try { await navigator.share({title:'Códigos escaneados', text: asText()}); } catch {} }
+    else copy(asText(), 'Tu navegador no comparte; los copié al portapapeles.');
+  };
+  $('csvBtn').onclick = () => {
+    if (!items.length) return;
+    const esc = v => /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+    const csv = '﻿Código,Tipo,Fecha\r\n' + items.slice().reverse().map(it => [esc(it.code), it.type, new Date(it.ts).toISOString().replace('T', ' ').slice(0, 19)].join(',')).join('\r\n');
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
+    a.download = 'codigos-' + new Date().toISOString().slice(0, 10) + '.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  };
+  $('clearBtn').onclick = () => { if (items.length) $('confirm').hidden = false; };
+  $('no').onclick = () => { $('confirm').hidden = true; };
+  $('yes').onclick = () => { items = []; save(); render(); $('confirm').hidden = true; };
+
+  render();
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+})();
+</script>
+</body>
+</html>
